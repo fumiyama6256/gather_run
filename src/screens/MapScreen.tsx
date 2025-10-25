@@ -164,6 +164,11 @@ export default function MapScreen() {
     setModalVisible(true);
   };
 
+  const handleMarkerPress = () => {
+    // マーカーをタップした時は何もしない（ポップアップのみ表示）
+    // これによりマップのonPressイベントが発火しない
+  };
+
   const handleCreateSuccess = () => {
     // 現在地の近くのrunを再取得
     if (currentLocation) {
@@ -214,6 +219,7 @@ export default function MapScreen() {
             coordinate={marker.coordinate}
             title={marker.description}
             description={`${marker.location_name || ''}\n${new Date(marker.datetime).toLocaleString()}`}
+            onPress={handleMarkerPress}
           />
         ))}
         {selectedLocation && modalVisible && (
