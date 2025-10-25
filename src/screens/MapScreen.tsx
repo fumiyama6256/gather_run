@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Alert, TouchableOpacity, Text } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE, MapPressEvent } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
@@ -205,8 +205,8 @@ export default function MapScreen() {
     const newRegion = {
       latitude,
       longitude,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
+      latitudeDelta: 0.005,
+      longitudeDelta: 0.005,
     };
     setRegion(newRegion);
     // 地図をアニメーション付きで移動
@@ -231,7 +231,7 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_DEFAULT}
+        provider={PROVIDER_GOOGLE}
         region={region}
         showsUserLocation={true}
         showsMyLocationButton={true}
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 30,
     alignSelf: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#52C41A',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 30,
@@ -363,8 +363,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   customMarkerCallout: {
-    backgroundColor: 'white',
+    backgroundColor: '#F6FFED',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#B7EB8F',
     padding: 8,
     minWidth: 120,
     maxWidth: 200,
@@ -373,7 +375,7 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 3.84,
     elevation: 5,
     marginBottom: 4,
@@ -388,7 +390,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 12,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: 'white',
+    borderTopColor: '#F6FFED',
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
@@ -396,7 +398,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#52C41A',
+    borderWidth: 2,
+    borderColor: '#237804',
     position: 'absolute',
     top: 2,
   },

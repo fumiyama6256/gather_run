@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Keyboard,
 } from 'react-native';
-import * as Location from 'expo-location';
 
 type SearchBarProps = {
   onLocationSelect: (latitude: number, longitude: number) => void;
@@ -18,6 +17,7 @@ export default function SearchBar({ onLocationSelect }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
+  const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY || '';
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -27,22 +27,48 @@ export default function SearchBar({ onLocationSelect }: SearchBarProps) {
     Keyboard.dismiss();
 
     try {
-      // ジオコーディング: 住所や場所名から座標を取得
-      const results = await Location.geocodeAsync(searchQuery);
+      // Google Places Autocomplete API
+      const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+        searchQuery
+      )}&key=${GOOGLE_PLACES_API_KEY}&language=ja&components=country:jp`;
 
-      if (results.length === 0) {
+      const response = await fetch(autocompleteUrl);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
+        // 最初の候補を自動選択
+        const firstResult = data.predictions[0];
+        await getPlaceDetails(firstResult.place_id);
+      } else {
         setError('場所が見つかりませんでした');
         setIsSearching(false);
-        return;
       }
-
-      // 最初の結果を使用
-      const { latitude, longitude } = results[0];
-      onLocationSelect(latitude, longitude);
-      setSearchQuery('');
     } catch (err) {
-      console.error('Geocoding error:', err);
+      console.error('Google Places API error:', err);
       setError('検索に失敗しました');
+      setIsSearching(false);
+    }
+  };
+
+  const getPlaceDetails = async (placeId: string) => {
+    try {
+      // Place Details API
+      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${GOOGLE_PLACES_API_KEY}&language=ja&fields=geometry`;
+
+      const response = await fetch(detailsUrl);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.result?.geometry?.location) {
+        const { lat, lng } = data.result.geometry.location;
+        onLocationSelect(lat, lng);
+        setSearchQuery('');
+        setError('');
+      } else {
+        setError('場所の詳細取得に失敗しました');
+      }
+    } catch (err) {
+      console.error('Place details error:', err);
+      setError('場所の詳細取得に失敗しました');
     } finally {
       setIsSearching(false);
     }
@@ -53,7 +79,8 @@ export default function SearchBar({ onLocationSelect }: SearchBarProps) {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.input}
-          placeholder="場所を検索（住所、ランドマーク等）"
+          placeholder="場所を検索（清美山競技場など）"
+          placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
@@ -66,7 +93,7 @@ export default function SearchBar({ onLocationSelect }: SearchBarProps) {
           disabled={isSearching}
         >
           {isSearching ? (
-            <ActivityIndicator size="small" color="#007AFF" />
+            <ActivityIndicator size="small" color="#52C41A" />
           ) : (
             <Text style={styles.searchIcon}>🔍</Text>
           )}
@@ -87,14 +114,16 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: '#F0FFF4',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#B7EB8F',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.15,
     shadowRadius: 3.84,
     elevation: 5,
   },
@@ -102,6 +131,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     fontSize: 16,
+    color: '#333',
   },
   searchButton: {
     width: 50,
@@ -115,9 +145,10 @@ const styles = StyleSheet.create({
     color: '#ff4444',
     fontSize: 14,
     marginTop: 8,
-    marginLeft: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#FFF1F0',
     padding: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFCCC7',
   },
 });
