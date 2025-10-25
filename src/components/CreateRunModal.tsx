@@ -39,7 +39,10 @@ export default function CreateRunModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
+    // Androidは自動で閉じる
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (selectedDate) {
       const newDate = new Date(datetime);
       newDate.setFullYear(selectedDate.getFullYear());
@@ -50,7 +53,10 @@ export default function CreateRunModal({
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(false);
+    // Androidは自動で閉じる
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
     if (selectedTime) {
       const newDate = new Date(datetime);
       newDate.setHours(selectedTime.getHours());
@@ -173,16 +179,58 @@ export default function CreateRunModal({
               </View>
             </View>
 
-            {showDatePicker && (
+            {showDatePicker && Platform.OS === 'ios' && (
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.pickerDoneButton}>完了</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={datetime}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleDateChange}
+                  minimumDate={new Date()}
+                  locale="ja-JP"
+                  themeVariant="light"
+                  textColor="#000000"
+                  style={styles.picker}
+                />
+              </View>
+            )}
+
+            {showDatePicker && Platform.OS === 'android' && (
               <DateTimePicker
                 value={datetime}
                 mode="date"
                 display="default"
                 onChange={handleDateChange}
+                minimumDate={new Date()}
               />
             )}
 
-            {showTimePicker && (
+            {showTimePicker && Platform.OS === 'ios' && (
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                    <Text style={styles.pickerDoneButton}>完了</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={datetime}
+                  mode="time"
+                  display="spinner"
+                  onChange={handleTimeChange}
+                  locale="ja-JP"
+                  themeVariant="light"
+                  textColor="#000000"
+                  style={styles.picker}
+                />
+              </View>
+            )}
+
+            {showTimePicker && Platform.OS === 'android' && (
               <DateTimePicker
                 value={datetime}
                 mode="time"
@@ -312,7 +360,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#52C41A',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -326,5 +374,30 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  pickerContainer: {
+    backgroundColor: '#F6FFED',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#B7EB8F',
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: '#B7EB8F',
+    backgroundColor: '#F0FFF4',
+  },
+  pickerDoneButton: {
+    color: '#52C41A',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  picker: {
+    height: 200,
+    backgroundColor: '#F6FFED',
   },
 });
