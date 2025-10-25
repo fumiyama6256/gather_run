@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Alert, TouchableOpacity, Text } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { Coordinate, RunMarker } from '../types';
 import { supabase } from '../lib/supabase';
 import CreateRunModal from '../components/CreateRunModal';
+import SearchBar from '../components/SearchBar';
+
+const LAST_REGION_KEY = 'lastMapRegion';
 
 export default function MapScreen() {
+  const mapRef = useRef<MapView>(null);
   const [region, setRegion] = useState({
     latitude: 35.6762, // 東京（デフォルト）
     longitude: 139.6503,
@@ -19,9 +24,18 @@ export default function MapScreen() {
   const [currentLocation, setCurrentLocation] = useState<Coordinate | null>(null);
 
   useEffect(() => {
-    // 位置情報の許可を取得
+    // 初期化処理
     (async () => {
       try {
+        // 保存された位置を読み込み
+        const savedRegion = await AsyncStorage.getItem(LAST_REGION_KEY);
+        if (savedRegion) {
+          const parsed = JSON.parse(savedRegion);
+          setRegion(parsed);
+          fetchNearbyRuns(parsed.latitude, parsed.longitude);
+        }
+
+        // 位置情報の許可を取得
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           Alert.alert('位置情報の許可が必要です');
@@ -34,14 +48,17 @@ export default function MapScreen() {
           longitude: location.coords.longitude,
         };
         setCurrentLocation(coords);
-        setRegion({
-          ...coords,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
 
-        // 近くの募集を取得
-        fetchNearbyRuns(coords.latitude, coords.longitude);
+        // 保存された位置がない場合のみ、現在地にセット
+        if (!savedRegion) {
+          const newRegion = {
+            ...coords,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          };
+          setRegion(newRegion);
+          fetchNearbyRuns(coords.latitude, coords.longitude);
+        }
       } catch (error) {
         console.error('Location error:', error);
         Alert.alert('位置情報エラー', '位置情報の取得に失敗しました');
@@ -154,15 +171,42 @@ export default function MapScreen() {
     }
   };
 
+  const handleLocationSearch = (latitude: number, longitude: number) => {
+    const newRegion = {
+      latitude,
+      longitude,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    };
+    setRegion(newRegion);
+    // 地図をアニメーション付きで移動
+    mapRef.current?.animateToRegion(newRegion, 1000);
+    // 新しい位置の近くのrunを取得
+    fetchNearbyRuns(latitude, longitude);
+  };
+
+  const handleRegionChangeComplete = async (newRegion: any) => {
+    // 地図の位置が変わったら保存
+    try {
+      await AsyncStorage.setItem(LAST_REGION_KEY, JSON.stringify(newRegion));
+    } catch (error) {
+      console.error('Failed to save region:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
+      <SearchBar onLocationSelect={handleLocationSearch} />
+
       <MapView
+        ref={mapRef}
         style={styles.map}
         provider={PROVIDER_DEFAULT}
         region={region}
         showsUserLocation
         showsMyLocationButton
         onPress={handleMapPress}
+        onRegionChangeComplete={handleRegionChangeComplete}
       >
         {markers.map((marker) => (
           <Marker
