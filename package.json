@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/datetimepicker": "^8.4.5",
     "@supabase/supabase-js": "^2.76.1",
     "expo": "~54.0.20",
     "expo-location": "^19.0.7",

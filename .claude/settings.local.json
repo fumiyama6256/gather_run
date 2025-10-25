@@ -17,7 +17,9 @@
       "Bash(docker volume ls:*)",
       "Bash(docker volume rm:*)",
       "Bash(open:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n初期セットアップ: React Native + Supabase (PostGIS対応)\n\n- Expo React Nativeアプリのセットアップ（モバイル専用）\n- 依存関係のインストール: expo-location, react-native-maps, @supabase/supabase-js\n- MapScreen作成（位置情報取得、近くのrun表示）\n- Supabaseローカル開発環境のセットアップ:\n  - PostGIS拡張（地理空間データ用）\n  - runsテーブル（空間インデックス付き）\n  - nearby_runs RPC関数（半径内検索）\n  - Realtime有効化（リアルタイム更新）\n  - 東京エリアのテストデータ投入\n- React Native用polyfill追加（URL, crypto）\n- Supabase接続用の環境変数設定\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\n投稿機能の実装\n\n- CreateRunModalコンポーネント作成\n  - 日時選択（DateTimePicker）\n  - トレーニング内容入力フォーム\n  - 場所の名前（任意）\n  - メモ（任意）\n  - バリデーション\n  - Supabaseへの投稿処理\n- MapScreenに投稿ボタン追加\n  - 地図タップで場所選択\n  - 現在地で投稿もサポート\n  - 投稿成功後に近くのrunを再取得\n  - 選択中の場所を青いマーカーで表示\n- 依存関係追加: @react-native-community/datetimepicker\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": []
   }

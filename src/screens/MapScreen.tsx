@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import { StyleSheet, View, Alert, TouchableOpacity, Text } from 'react-native';
+import MapView, { Marker, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Coordinate, RunMarker } from '../types';
 import { supabase } from '../lib/supabase';
+import CreateRunModal from '../components/CreateRunModal';
 
 export default function MapScreen() {
   const [region, setRegion] = useState({
@@ -13,6 +14,9 @@ export default function MapScreen() {
     longitudeDelta: 0.0421,
   });
   const [markers, setMarkers] = useState<RunMarker[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Coordinate | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<Coordinate | null>(null);
 
   useEffect(() => {
     // 位置情報の許可を取得
@@ -25,15 +29,19 @@ export default function MapScreen() {
         }
 
         const location = await Location.getCurrentPositionAsync({});
-        setRegion({
+        const coords = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
+        };
+        setCurrentLocation(coords);
+        setRegion({
+          ...coords,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         });
 
         // 近くの募集を取得
-        fetchNearbyRuns(location.coords.latitude, location.coords.longitude);
+        fetchNearbyRuns(coords.latitude, coords.longitude);
       } catch (error) {
         console.error('Location error:', error);
         Alert.alert('位置情報エラー', '位置情報の取得に失敗しました');
@@ -119,6 +127,19 @@ export default function MapScreen() {
     return { latitude: 0, longitude: 0 };
   };
 
+  const handleMapPress = (event: MapPressEvent) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setSelectedLocation({ latitude, longitude });
+    setModalVisible(true);
+  };
+
+  const handleCreateSuccess = () => {
+    // 現在地の近くのrunを再取得
+    if (currentLocation) {
+      fetchNearbyRuns(currentLocation.latitude, currentLocation.longitude);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <MapView
@@ -127,6 +148,7 @@ export default function MapScreen() {
         region={region}
         showsUserLocation
         showsMyLocationButton
+        onPress={handleMapPress}
       >
         {markers.map((marker) => (
           <Marker
@@ -136,7 +158,36 @@ export default function MapScreen() {
             description={`${marker.location_name || ''}\n${new Date(marker.datetime).toLocaleString()}`}
           />
         ))}
+        {selectedLocation && modalVisible && (
+          <Marker
+            coordinate={selectedLocation}
+            pinColor="blue"
+            title="投稿場所"
+          />
+        )}
       </MapView>
+
+      {/* 投稿ボタン */}
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => {
+          setSelectedLocation(currentLocation);
+          setModalVisible(true);
+        }}
+      >
+        <Text style={styles.createButtonText}>+ Run を投稿</Text>
+      </TouchableOpacity>
+
+      {/* 投稿モーダル */}
+      <CreateRunModal
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedLocation(null);
+        }}
+        selectedLocation={selectedLocation}
+        onSuccess={handleCreateSuccess}
+      />
     </View>
   );
 }
@@ -148,5 +199,27 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  createButton: {
+    position: 'absolute',
+    bottom: 30,
+    alignSelf: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  createButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
