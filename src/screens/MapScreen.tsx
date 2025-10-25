@@ -112,7 +112,13 @@ export default function MapScreen() {
       note: run.note,
       thanks_count: run.thanks_count,
     };
-    setMarkers((prev) => [...prev, newMarker]);
+    // 重複チェック: 既に存在するIDなら追加しない
+    setMarkers((prev) => {
+      if (prev.some((marker) => marker.id === newMarker.id)) {
+        return prev;
+      }
+      return [...prev, newMarker];
+    });
   };
 
   // PostGISのPOINT形式 "POINT(lng lat)" から座標を抽出
