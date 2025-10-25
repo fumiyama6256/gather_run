@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__notion__notion-fetch",
+      "mcp__notion__notion-update-page",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate:*)",
+      "Bash(lsof:*)",
+      "Bash(brew install:*)",
+      "Bash(supabase init:*)",
+      "Bash(supabase migration:*)",
+      "Bash(supabase start:*)",
+      "Bash(supabase stop:*)",
+      "Bash(supabase db reset:*)",
+      "Bash(docker volume ls:*)",
+      "Bash(docker volume rm:*)",
+      "Bash(open:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
