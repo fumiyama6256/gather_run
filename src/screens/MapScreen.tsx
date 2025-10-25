@@ -238,31 +238,32 @@ export default function MapScreen() {
         onPress={handleMapPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
-        {/* TODO: マーカーのポップアップを常に表示させる
-            現状: ピンタップでrun詳細に遷移（ポップアップは表示されない）
-            理想: 最初から全ピンにポップアップ表示 → ピン/ポップアップタップでrun詳細
-
-            試したこと:
-            - Callout with tooltip → ポップアップが表示されない
-            - title/description プロパティ → タップ時のみ表示
-
-            解決済み:
-            - ✅ マーカータップ時にrun登録フォームが表示される問題 → markerPressedRefで解決
-         */}
         {markers.map((marker) => (
           <Marker
             key={marker.id}
             coordinate={marker.coordinate}
             onPress={() => handleMarkerPress(marker)}
             tracksViewChanges={false}
-            title={marker.description}
-            description={`${new Date(marker.datetime).toLocaleString('ja-JP', {
-              month: 'numeric',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}`}
-          />
+          >
+            <View style={styles.customMarkerContainer}>
+              <View style={styles.customMarkerCallout}>
+                <Text style={styles.calloutTitle} numberOfLines={2}>
+                  {marker.description}
+                </Text>
+                <Text style={styles.calloutTime}>
+                  {new Date(marker.datetime).toLocaleString('ja-JP', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </View>
+              <View style={styles.customMarkerPin}>
+                <View style={styles.pinDot} />
+              </View>
+            </View>
+          </Marker>
         ))}
         {selectedLocation && modalVisible && (
           <Marker
@@ -357,5 +358,46 @@ const styles = StyleSheet.create({
   calloutTime: {
     fontSize: 11,
     color: '#666',
+  },
+  customMarkerContainer: {
+    alignItems: 'center',
+  },
+  customMarkerCallout: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 8,
+    minWidth: 120,
+    maxWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginBottom: 4,
+  },
+  customMarkerPin: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 12,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  pinDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FF3B30',
+    position: 'absolute',
+    top: 2,
   },
 });
