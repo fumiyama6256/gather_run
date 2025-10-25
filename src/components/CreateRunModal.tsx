@@ -10,6 +10,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Coordinate } from '../types';
@@ -58,6 +60,9 @@ export default function CreateRunModal({
   };
 
   const handleSubmit = async () => {
+    // キーボードを閉じる
+    Keyboard.dismiss();
+
     if (!selectedLocation) {
       Alert.alert('エラー', '地図上で場所を選択してください');
       return;
@@ -106,19 +111,23 @@ export default function CreateRunModal({
       transparent={true}
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Run を投稿</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Run を投稿</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView style={styles.form}>
+            <ScrollView
+              style={styles.form}
+              keyboardShouldPersistTaps="handled"
+            >
             {/* 場所 */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>場所</Text>
@@ -218,7 +227,8 @@ export default function CreateRunModal({
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
