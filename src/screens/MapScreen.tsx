@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Alert, TouchableOpacity, Text } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
+import MapView, { Marker, Callout, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
@@ -170,8 +170,8 @@ export default function MapScreen() {
     setModalVisible(true);
   };
 
-  const handleMarkerPress = (marker: RunMarker) => {
-    // マーカーをタップした時に詳細画面に遷移
+  const handleCalloutPress = (marker: RunMarker) => {
+    // Calloutをタップした時に詳細画面に遷移
     navigation.navigate('RunDetail', {
       runId: marker.id,
       description: marker.description,
@@ -220,8 +220,8 @@ export default function MapScreen() {
         style={styles.map}
         provider={PROVIDER_DEFAULT}
         region={region}
-        showsUserLocation
-        showsMyLocationButton
+        showsUserLocation={true}
+        showsMyLocationButton={true}
         onPress={handleMapPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
@@ -229,10 +229,22 @@ export default function MapScreen() {
           <Marker
             key={marker.id}
             coordinate={marker.coordinate}
-            title={marker.description}
-            description={`${marker.location_name || ''}\n${new Date(marker.datetime).toLocaleString()}`}
-            onPress={() => handleMarkerPress(marker)}
-          />
+            onPress={() => handleCalloutPress(marker)}
+          >
+            <Callout>
+              <View style={styles.callout}>
+                <Text style={styles.calloutTitle}>{marker.description}</Text>
+                <Text style={styles.calloutTime}>
+                  {new Date(marker.datetime).toLocaleString('ja-JP', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </View>
+            </Callout>
+          </Marker>
         ))}
         {selectedLocation && modalVisible && (
           <Marker
@@ -297,5 +309,35 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  callout: {
+    padding: 8,
+    minWidth: 120,
+    maxWidth: 200,
+  },
+  calloutTooltip: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 8,
+    minWidth: 120,
+    maxWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  calloutTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  calloutTime: {
+    fontSize: 11,
+    color: '#666',
   },
 });

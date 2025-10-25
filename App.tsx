@@ -23,16 +23,23 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator>
+        <Stack.Navigator initialRouteName="Map">
           <Stack.Screen
             name="Map"
             component={MapScreen}
-            options={{ headerShown: false }}
+            options={{
+              headerShown: false,
+              presentation: 'card',
+            }}
           />
           <Stack.Screen
             name="RunDetail"
             component={RunDetailScreen}
-            options={{ title: 'Run詳細' }}
+            options={{
+              title: 'Run詳細',
+              headerShown: true,
+              presentation: 'card',
+            }}
           />
         </Stack.Navigator>
         <StatusBar style="auto" />
