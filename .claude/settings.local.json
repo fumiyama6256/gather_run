@@ -24,7 +24,9 @@
       "Bash(awk:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\n環境変数の修正とREADME更新\n\n- .envのIPアドレスを現在のローカルIPに更新（192.168.10.105）\n- SafeAreaViewの警告を修正（react-native-safe-area-context使用）\n- READMEに実機テスト時のIP変更手順を追加\n- 実装済み機能リストを更新\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit -m \"$(cat <<''EOF''\n投稿フォームのキーボード挙動を修正\n\n- 投稿ボタン押下時にキーボードを明示的に閉じる\n- フォーム外タップでキーボードを閉じる\n- ScrollViewにkeyboardShouldPersistTaps=\"handled\"を追加\n- 2回タップしないと投稿できない問題を解消\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npx expo install --fix)"
     ],
     "deny": []
   }

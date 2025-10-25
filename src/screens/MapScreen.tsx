@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Alert, TouchableOpacity, Text } from 'react-native';
-import MapView, { Marker, Callout, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
@@ -225,26 +225,34 @@ export default function MapScreen() {
         onPress={handleMapPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
+        {/* TODO: マーカーのポップアップを常に表示させる
+            現状: ピンタップでポップアップ表示 → 再度タップでrun詳細
+            理想: 最初から全ピンにポップアップ表示 → ピン/ポップアップタップでrun詳細
+
+            試したこと:
+            - Callout with tooltip → ポップアップが表示されない
+            - title/description プロパティ → タップ時のみ表示（現在の実装）
+
+            課題:
+            - stopPropagation()が効いていない？run登録フォームも表示される
+         */}
         {markers.map((marker) => (
           <Marker
             key={marker.id}
             coordinate={marker.coordinate}
-            onPress={() => handleCalloutPress(marker)}
-          >
-            <Callout>
-              <View style={styles.callout}>
-                <Text style={styles.calloutTitle}>{marker.description}</Text>
-                <Text style={styles.calloutTime}>
-                  {new Date(marker.datetime).toLocaleString('ja-JP', {
-                    month: 'numeric',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-              </View>
-            </Callout>
-          </Marker>
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleCalloutPress(marker);
+            }}
+            tracksViewChanges={false}
+            title={marker.description}
+            description={`${new Date(marker.datetime).toLocaleString('ja-JP', {
+              month: 'numeric',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}`}
+          />
         ))}
         {selectedLocation && modalVisible && (
           <Marker
