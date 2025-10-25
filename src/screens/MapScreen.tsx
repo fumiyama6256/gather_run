@@ -81,19 +81,22 @@ export default function MapScreen() {
 
       if (error) throw error;
 
-      const runMarkers: RunMarker[] = data.map((run: any) => {
-        // PostGISのPOINT形式から座標を抽出
-        const coords = parseLocation(run.location);
-        return {
-          id: run.id,
-          coordinate: coords,
-          location_name: run.location_name,
-          datetime: run.datetime,
-          description: run.description,
-          note: run.note,
-          thanks_count: run.thanks_count,
-        };
-      });
+      const now = new Date();
+      const runMarkers: RunMarker[] = data
+        .filter((run: any) => new Date(run.datetime) > now) // 未来のRunのみ
+        .map((run: any) => {
+          // PostGISのPOINT形式から座標を抽出
+          const coords = parseLocation(run.location);
+          return {
+            id: run.id,
+            coordinate: coords,
+            location_name: run.location_name,
+            datetime: run.datetime,
+            description: run.description,
+            note: run.note,
+            thanks_count: run.thanks_count,
+          };
+        });
 
       setMarkers(runMarkers);
     } catch (error) {
@@ -102,6 +105,11 @@ export default function MapScreen() {
   };
 
   const addMarkerFromRun = (run: any) => {
+    // 過去のRunは追加しない
+    if (new Date(run.datetime) <= new Date()) {
+      return;
+    }
+
     const coords = parseLocation(run.location);
     const newMarker: RunMarker = {
       id: run.id,
