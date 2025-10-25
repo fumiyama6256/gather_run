@@ -3,16 +3,21 @@ import { StyleSheet, View, Alert, TouchableOpacity, Text } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Coordinate, RunMarker } from '../types';
 import { supabase } from '../lib/supabase';
+import type { RootStackParamList } from '../../App';
 import CreateRunModal from '../components/CreateRunModal';
 import SearchBar from '../components/SearchBar';
 
 const LAST_REGION_KEY = 'lastMapRegion';
 
+type MapScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Map'>;
+
 export default function MapScreen() {
+  const navigation = useNavigation<MapScreenNavigationProp>();
   const mapRef = useRef<MapView>(null);
-  const markerRefs = useRef<{ [key: string]: any }>({});
   const [region, setRegion] = useState({
     latitude: 35.6762, // 東京（デフォルト）
     longitude: 139.6503,
@@ -23,7 +28,6 @@ export default function MapScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Coordinate | null>(null);
   const [currentLocation, setCurrentLocation] = useState<Coordinate | null>(null);
-  const [isZoomedIn, setIsZoomedIn] = useState(false);
 
   useEffect(() => {
     // 初期化処理
@@ -166,9 +170,15 @@ export default function MapScreen() {
     setModalVisible(true);
   };
 
-  const handleMarkerPress = () => {
-    // マーカーをタップした時は何もしない（ポップアップのみ表示）
-    // これによりマップのonPressイベントが発火しない
+  const handleMarkerPress = (marker: RunMarker) => {
+    // マーカーをタップした時に詳細画面に遷移
+    navigation.navigate('RunDetail', {
+      runId: marker.id,
+      description: marker.description,
+      datetime: marker.datetime,
+      location_name: marker.location_name,
+      note: marker.note,
+    });
   };
 
   const handleCreateSuccess = () => {
@@ -199,26 +209,6 @@ export default function MapScreen() {
     } catch (error) {
       console.error('Failed to save region:', error);
     }
-
-    // ズームレベルをチェック（latitudeDeltaが小さいほどズームイン）
-    const ZOOM_THRESHOLD = 0.02; // この値以下でズームインと判定
-    const shouldShowCallouts = newRegion.latitudeDelta <= ZOOM_THRESHOLD;
-
-    if (shouldShowCallouts !== isZoomedIn) {
-      setIsZoomedIn(shouldShowCallouts);
-
-      if (shouldShowCallouts) {
-        // ズームイン時: すべてのマーカーのCalloutを表示
-        Object.values(markerRefs.current).forEach((ref) => {
-          ref?.showCallout?.();
-        });
-      } else {
-        // ズームアウト時: すべてのCalloutを非表示
-        Object.values(markerRefs.current).forEach((ref) => {
-          ref?.hideCallout?.();
-        });
-      }
-    }
   };
 
   return (
@@ -238,15 +228,10 @@ export default function MapScreen() {
         {markers.map((marker) => (
           <Marker
             key={marker.id}
-            ref={(ref) => {
-              if (ref) {
-                markerRefs.current[marker.id] = ref;
-              }
-            }}
             coordinate={marker.coordinate}
             title={marker.description}
             description={`${marker.location_name || ''}\n${new Date(marker.datetime).toLocaleString()}`}
-            onPress={handleMarkerPress}
+            onPress={() => handleMarkerPress(marker)}
           />
         ))}
         {selectedLocation && modalVisible && (
