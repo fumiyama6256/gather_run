@@ -1,3 +1,6 @@
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Alert, TouchableOpacity, Text } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, MapPressEvent } from 'react-native-maps';
@@ -18,6 +21,7 @@ type MapScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ma
 export default function MapScreen() {
   const navigation = useNavigation<MapScreenNavigationProp>();
   const mapRef = useRef<MapView>(null);
+  const markerPressedRef = useRef(false);
   const [region, setRegion] = useState({
     latitude: 35.6762, // 東京（デフォルト）
     longitude: 139.6503,
@@ -165,13 +169,22 @@ export default function MapScreen() {
   };
 
   const handleMapPress = (event: MapPressEvent) => {
+    // マーカーがタップされた直後なら無視（run登録フォームを開かない）
+    if (markerPressedRef.current) {
+      markerPressedRef.current = false;
+      return;
+    }
+
     const { latitude, longitude } = event.nativeEvent.coordinate;
     setSelectedLocation({ latitude, longitude });
     setModalVisible(true);
   };
 
-  const handleCalloutPress = (marker: RunMarker) => {
-    // Calloutをタップした時に詳細画面に遷移
+  const handleMarkerPress = (marker: RunMarker) => {
+    // マーカーがタップされたことを記録
+    markerPressedRef.current = true;
+
+    // run詳細画面に遷移
     navigation.navigate('RunDetail', {
       runId: marker.id,
       description: marker.description,
@@ -226,24 +239,21 @@ export default function MapScreen() {
         onRegionChangeComplete={handleRegionChangeComplete}
       >
         {/* TODO: マーカーのポップアップを常に表示させる
-            現状: ピンタップでポップアップ表示 → 再度タップでrun詳細
+            現状: ピンタップでrun詳細に遷移（ポップアップは表示されない）
             理想: 最初から全ピンにポップアップ表示 → ピン/ポップアップタップでrun詳細
 
             試したこと:
             - Callout with tooltip → ポップアップが表示されない
-            - title/description プロパティ → タップ時のみ表示（現在の実装）
+            - title/description プロパティ → タップ時のみ表示
 
-            課題:
-            - stopPropagation()が効いていない？run登録フォームも表示される
+            解決済み:
+            - ✅ マーカータップ時にrun登録フォームが表示される問題 → markerPressedRefで解決
          */}
         {markers.map((marker) => (
           <Marker
             key={marker.id}
             coordinate={marker.coordinate}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              handleCalloutPress(marker);
-            }}
+            onPress={() => handleMarkerPress(marker)}
             tracksViewChanges={false}
             title={marker.description}
             description={`${new Date(marker.datetime).toLocaleString('ja-JP', {
