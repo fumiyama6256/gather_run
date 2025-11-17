@@ -32,6 +32,7 @@ export default function MapScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Coordinate | null>(null);
   const [currentLocation, setCurrentLocation] = useState<Coordinate | null>(null);
+  const [markerRenderKey, setMarkerRenderKey] = useState(0);
 
   useEffect(() => {
     // 初期化処理
@@ -91,6 +92,40 @@ export default function MapScreen() {
           addMarkerFromRun(payload.new as any);
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'runs',
+        },
+        async (payload) => {
+          console.log('Run updated:', payload.new);
+          // Realtime payloadにはlocationフィールドが含まれないため、DBから再取得
+          const { data, error } = await supabase
+            .from('runs')
+            .select('*')
+            .eq('id', (payload.new as any).id)
+            .single();
+
+          if (!error && data) {
+            updateMarkerFromRun(data);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'runs',
+        },
+        (payload) => {
+          console.log('Run deleted:', payload.old);
+          // マーカーを削除
+          removeMarker(payload.old.id);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -116,6 +151,7 @@ export default function MapScreen() {
           const coords = parseLocation(run.location);
           return {
             id: run.id,
+            user_id: run.user_id,
             coordinate: coords,
             location_name: run.location_name,
             datetime: run.datetime,
@@ -140,6 +176,7 @@ export default function MapScreen() {
     const coords = parseLocation(run.location);
     const newMarker: RunMarker = {
       id: run.id,
+      user_id: run.user_id,
       coordinate: coords,
       location_name: run.location_name,
       datetime: run.datetime,
@@ -154,6 +191,59 @@ export default function MapScreen() {
       }
       return [...prev, newMarker];
     });
+  };
+
+  const updateMarkerFromRun = (run: any) => {
+    console.log('updateMarkerFromRun called with:', run);
+    console.log('Run datetime:', run.datetime);
+    console.log('Run datetime parsed:', new Date(run.datetime));
+    console.log('Current time:', new Date());
+    console.log('Is past?', new Date(run.datetime) <= new Date());
+
+    // 編集後の日時をチェック: 過去のRunは表示しない
+    if (new Date(run.datetime) <= new Date()) {
+      console.log('Run datetime is in the past, removing marker');
+      // 過去の日付に変更された場合はマーカーを削除
+      removeMarker(run.id);
+      return;
+    }
+
+    const coords = parseLocation(run.location);
+    console.log('Parsed coordinates:', coords);
+
+    const updatedMarker: RunMarker = {
+      id: run.id,
+      user_id: run.user_id,
+      coordinate: coords,
+      location_name: run.location_name,
+      datetime: run.datetime,
+      description: run.description,
+      note: run.note,
+      thanks_count: run.thanks_count,
+    };
+
+    setMarkers((prev) => {
+      const existingIndex = prev.findIndex((marker) => marker.id === updatedMarker.id);
+
+      if (existingIndex >= 0) {
+        // 既存のマーカーを更新
+        console.log('Updating existing marker');
+        const newMarkers = [...prev];
+        newMarkers[existingIndex] = updatedMarker;
+        return newMarkers;
+      } else {
+        // マーカーが存在しない場合は新規追加
+        console.log('Adding new marker (not found in existing markers)');
+        return [...prev, updatedMarker];
+      }
+    });
+
+    // マーカーの再レンダリングを強制（ポップアップの内容を更新）
+    setMarkerRenderKey((prev) => prev + 1);
+  };
+
+  const removeMarker = (runId: string) => {
+    setMarkers((prev) => prev.filter((marker) => marker.id !== runId));
   };
 
   // PostGISのPOINT形式 "POINT(lng lat)" から座標を抽出
@@ -240,7 +330,7 @@ export default function MapScreen() {
       >
         {markers.map((marker) => (
           <Marker
-            key={marker.id}
+            key={`${marker.id}-${markerRenderKey}`}
             coordinate={marker.coordinate}
             onPress={() => handleMarkerPress(marker)}
             tracksViewChanges={false}

@@ -5,6 +5,7 @@ export type Coordinate = {
 
 export type Run = {
   id: string;
+  user_id: string;
   location: string; // PostGIS geography
   location_name: string | null;
   datetime: string;
@@ -16,6 +17,7 @@ export type Run = {
 
 export type RunMarker = {
   id: string;
+  user_id: string;
   coordinate: Coordinate;
   location_name: string | null;
   datetime: string;

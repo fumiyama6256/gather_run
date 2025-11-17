@@ -87,9 +87,21 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 npm start
 ```
 
-Expo Goアプリでスキャンするか、以下でシミュレータを起動：
-- iOS: `i` キーを押す
-- Android: `a` キーを押す
+起動方法は以下の3通り：
+
+**a) iOSシミュレータ（Mac のみ）**
+- ターミナルで `i` キーを押す
+- Xcodeシミュレータが自動起動し、Expo Goで開く
+- 事前にXcodeのインストールが必要
+
+**b) 実機（iPhone/Android）**
+- QRコードが表示されるので、スマホのカメラでスキャン
+- Expo Goアプリで開く（事前にApp Store/Play Storeからインストール）
+- PCとスマホが**同じWiFi**に接続されている必要あり
+
+**c) Androidエミュレータ**
+- ターミナルで `a` キーを押す
+- Android Studioのエミュレータが起動
 
 ### Supabase Studioの使用
 
@@ -103,24 +115,29 @@ http://127.0.0.1:54323
 ### 実装済み ✅
 - 📍 地図上で現在地周辺の募集を表示
 - 🔄 リアルタイムで新しい募集を受信
+- 👤 匿名ユーザー認証（自動ログイン）
 - ✍️ Run投稿機能
   - 地図タップで場所選択
   - 現在地で投稿
   - 日時選択
   - トレーニング内容入力
-- 📌 マーカーをタップして詳細を表示（基本）
+- 📌 マーカーをタップして詳細を表示
+- ✏️ Run編集機能（自分の投稿のみ）
+- 🗑️ Run削除機能（自分の投稿のみ）
+- 💬 コメント機能
 
 ### 今後追加予定
 - 🙏 「ありがとう！」機能
-- 📱 Run詳細表示（ボトムシート）
 - 🔍 日時・距離での絞り込み
 - 🎨 UI/UX改善
+- 🔐 アカウント連携機能（匿名→メール/SNS認証へのアップグレード）
 
 ## データベーススキーマ
 
 ```sql
 CREATE TABLE runs (
   id uuid PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id), -- 投稿者ID
   location geography(POINT),  -- 緯度経度
   location_name text,         -- 場所名
   datetime timestamp,         -- 開催日時
@@ -129,9 +146,33 @@ CREATE TABLE runs (
   thanks_count int,           -- お礼カウント
   created_at timestamp
 );
+
+-- Row Level Security (RLS)
+-- 読み取り: 誰でもOK
+-- 作成: 認証済みユーザーのみ
+-- 更新/削除: 自分の投稿のみ
 ```
 
 ## トラブルシューティング
+
+### iOSシミュレータが起動しない（"No iOS devices available"）
+
+**原因**: Xcodeのシミュレータがインストールされていない
+
+**解決方法**:
+1. Xcodeを起動
+2. メニューバー → **Xcode → Settings → Platforms**
+3. **iOS** の横の「Get」ボタンをクリックしてインストール
+4. 完了後、`npm start` → `i`キーで起動
+
+または、コマンドラインで：
+```bash
+xcodebuild -downloadPlatform iOS
+```
+
+**別の方法**: 実機（iPhone）でテストする
+- App Storeから「Expo Go」アプリをインストール
+- `npm start`後、QRコードをカメラでスキャン
 
 ### Supabaseが起動しない
 ```bash

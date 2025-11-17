@@ -82,7 +82,15 @@ export default function CreateRunModal({
     setIsSubmitting(true);
 
     try {
+      // 現在のユーザーIDを取得
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error('ユーザー認証が必要です');
+      }
+
       const { error } = await supabase.from('runs').insert({
+        user_id: user.id,
         location: `POINT(${selectedLocation.longitude} ${selectedLocation.latitude})`,
         location_name: locationName.trim() || null,
         datetime: datetime.toISOString(),

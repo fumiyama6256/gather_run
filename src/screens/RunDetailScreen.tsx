@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { Run } from '../types';
+import EditRunModal from '../components/EditRunModal';
 
 type Comment = {
   id: string;
@@ -28,9 +30,14 @@ export default function RunDetailScreen({ route, navigation }: RunDetailScreenPr
   const [newComment, setNewComment] = useState('');
   const [userName, setUserName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [run, setRun] = useState<Run | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   useEffect(() => {
+    fetchRun();
     fetchComments();
+    fetchCurrentUser();
 
     // リアルタイム更新を購読
     const channel = supabase
@@ -54,6 +61,30 @@ export default function RunDetailScreen({ route, navigation }: RunDetailScreenPr
       supabase.removeChannel(channel);
     };
   }, [runId]);
+
+  const fetchRun = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('runs')
+        .select('*')
+        .eq('id', runId)
+        .single();
+
+      if (error) throw error;
+      setRun(data);
+    } catch (error) {
+      console.error('Error fetching run:', error);
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const fetchComments = async () => {
     try {
@@ -102,6 +133,48 @@ export default function RunDetailScreen({ route, navigation }: RunDetailScreenPr
     }
   };
 
+  const handleEdit = () => {
+    setEditModalVisible(true);
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      '削除確認',
+      'この投稿を削除してもよろしいですか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('runs')
+                .delete()
+                .eq('id', runId);
+
+              if (error) throw error;
+
+              Alert.alert('成功', '投稿を削除しました', [
+                { text: 'OK', onPress: () => navigation.goBack() }
+              ]);
+            } catch (error) {
+              console.error('Error deleting run:', error);
+              Alert.alert('エラー', '投稿の削除に失敗しました');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEditSuccess = () => {
+    // Runを再取得
+    fetchRun();
+  };
+
+  const isOwner = run && currentUserId && run.user_id === currentUserId;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -111,10 +184,22 @@ export default function RunDetailScreen({ route, navigation }: RunDetailScreenPr
       <ScrollView style={styles.scrollView}>
         {/* Run詳細 */}
         <View style={styles.detailCard}>
-          <Text style={styles.title}>{description}</Text>
-          <Text style={styles.datetime}>{new Date(datetime).toLocaleString('ja-JP')}</Text>
-          {location_name && <Text style={styles.location}>{location_name}</Text>}
-          {note && <Text style={styles.note}>{note}</Text>}
+          <Text style={styles.title}>{run?.description || description}</Text>
+          <Text style={styles.datetime}>{new Date(run?.datetime || datetime).toLocaleString('ja-JP')}</Text>
+          {(run?.location_name || location_name) && <Text style={styles.location}>{run?.location_name || location_name}</Text>}
+          {(run?.note || note) && <Text style={styles.note}>{run?.note || note}</Text>}
+
+          {/* 編集・削除ボタン（自分の投稿のみ表示） */}
+          {isOwner && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                <Text style={styles.editButtonText}>編集</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                <Text style={styles.deleteButtonText}>削除</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* コメント一覧 */}
@@ -163,6 +248,14 @@ export default function RunDetailScreen({ route, navigation }: RunDetailScreenPr
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* 編集モーダル */}
+      <EditRunModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        run={run}
+        onSuccess={handleEditSuccess}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -206,6 +299,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     fontStyle: 'italic',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    marginTop: 15,
+    gap: 10,
+  },
+  editButton: {
+    flex: 1,
+    backgroundColor: '#2196F3',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: '#f44336',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   commentsSection: {
     padding: 15,
