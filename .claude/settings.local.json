@@ -33,7 +33,12 @@
       "Bash(xcodebuild:*)",
       "Bash(npx supabase:*)",
       "Bash(cat:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(pgrep:*)",
+      "Bash(ipconfig getifaddr:*)",
+      "Bash(psql:*)"
     ],
     "deny": []
   }

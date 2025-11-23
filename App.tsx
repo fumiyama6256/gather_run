@@ -12,10 +12,6 @@ export type RootStackParamList = {
   Map: undefined;
   RunDetail: {
     runId: string;
-    description: string;
-    datetime: string;
-    location_name: string | null;
-    note: string | null;
   };
 };
 

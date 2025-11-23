@@ -87,7 +87,6 @@ export default function MapScreen() {
           table: 'runs',
         },
         (payload) => {
-          console.log('New run added:', payload.new);
           // 新しい募集を追加
           addMarkerFromRun(payload.new as any);
         }
@@ -100,16 +99,15 @@ export default function MapScreen() {
           table: 'runs',
         },
         async (payload) => {
-          console.log('Run updated:', payload.new);
           // Realtime payloadにはlocationフィールドが含まれないため、DBから再取得
+          // PostGISのgeography型はRPC関数で文字列として取得
           const { data, error } = await supabase
-            .from('runs')
-            .select('*')
-            .eq('id', (payload.new as any).id)
-            .single();
+            .rpc('get_run_with_location', {
+              run_id: (payload.new as any).id
+            });
 
-          if (!error && data) {
-            updateMarkerFromRun(data);
+          if (!error && data && data.length > 0) {
+            updateMarkerFromRun(data[0]);
           }
         }
       )
@@ -121,7 +119,6 @@ export default function MapScreen() {
           table: 'runs',
         },
         (payload) => {
-          console.log('Run deleted:', payload.old);
           // マーカーを削除
           removeMarker(payload.old.id);
         }
@@ -143,9 +140,10 @@ export default function MapScreen() {
 
       if (error) throw error;
 
-      const now = new Date();
+      const now = new Date().getTime();
+      const oneMinute = 60 * 1000; // 1分
       const runMarkers: RunMarker[] = data
-        .filter((run: any) => new Date(run.datetime) > now) // 未来のRunのみ
+        .filter((run: any) => new Date(run.datetime).getTime() > now - oneMinute) // 未来のRunのみ（1分の余裕を持たせる）
         .map((run: any) => {
           // PostGISのPOINT形式から座標を抽出
           const coords = parseLocation(run.location);
@@ -168,8 +166,12 @@ export default function MapScreen() {
   };
 
   const addMarkerFromRun = (run: any) => {
-    // 過去のRunは追加しない
-    if (new Date(run.datetime) <= new Date()) {
+    // 過去のRunは追加しない（1分の余裕を持たせる）
+    const runTime = new Date(run.datetime).getTime();
+    const now = new Date().getTime();
+    const oneMinute = 60 * 1000;
+
+    if (runTime < now - oneMinute) {
       return;
     }
 
@@ -194,22 +196,25 @@ export default function MapScreen() {
   };
 
   const updateMarkerFromRun = (run: any) => {
-    console.log('updateMarkerFromRun called with:', run);
-    console.log('Run datetime:', run.datetime);
-    console.log('Run datetime parsed:', new Date(run.datetime));
-    console.log('Current time:', new Date());
-    console.log('Is past?', new Date(run.datetime) <= new Date());
+    // locationフィールドが含まれているか確認
+    if (!run.location) {
+      console.error('Run location is missing, cannot update marker');
+      return;
+    }
 
     // 編集後の日時をチェック: 過去のRunは表示しない
-    if (new Date(run.datetime) <= new Date()) {
-      console.log('Run datetime is in the past, removing marker');
+    // 1分以上過去の場合のみ削除（タイムゾーンやミリ秒の誤差を考慮）
+    const runTime = new Date(run.datetime).getTime();
+    const now = new Date().getTime();
+    const oneMinute = 60 * 1000;
+
+    if (runTime < now - oneMinute) {
       // 過去の日付に変更された場合はマーカーを削除
       removeMarker(run.id);
       return;
     }
 
     const coords = parseLocation(run.location);
-    console.log('Parsed coordinates:', coords);
 
     const updatedMarker: RunMarker = {
       id: run.id,
@@ -227,13 +232,11 @@ export default function MapScreen() {
 
       if (existingIndex >= 0) {
         // 既存のマーカーを更新
-        console.log('Updating existing marker');
         const newMarkers = [...prev];
         newMarkers[existingIndex] = updatedMarker;
         return newMarkers;
       } else {
         // マーカーが存在しない場合は新規追加
-        console.log('Adding new marker (not found in existing markers)');
         return [...prev, updatedMarker];
       }
     });
@@ -274,13 +277,9 @@ export default function MapScreen() {
     // マーカーがタップされたことを記録
     markerPressedRef.current = true;
 
-    // run詳細画面に遷移
+    // run詳細画面に遷移（runIdのみ渡す）
     navigation.navigate('RunDetail', {
       runId: marker.id,
-      description: marker.description,
-      datetime: marker.datetime,
-      location_name: marker.location_name,
-      note: marker.note,
     });
   };
 

@@ -15,17 +15,13 @@ type RunDetailScreenProps = {
   route: {
     params: {
       runId: string;
-      description: string;
-      datetime: string;
-      location_name: string | null;
-      note: string | null;
     };
   };
   navigation: any;
 };
 
 export default function RunDetailScreen({ route, navigation }: RunDetailScreenProps) {
-  const { runId, description, datetime, location_name, note } = route.params;
+  const { runId } = route.params;
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [userName, setUserName] = useState('');
@@ -41,7 +37,7 @@ export default function RunDetailScreen({ route, navigation }: RunDetailScreenPr
 
     // リアルタイム更新を購読
     const channel = supabase
-      .channel(`run-${runId}-comments`)
+      .channel(`run-${runId}-updates`)
       .on(
         'postgres_changes',
         {
@@ -51,8 +47,20 @@ export default function RunDetailScreen({ route, navigation }: RunDetailScreenPr
           filter: `run_id=eq.${runId}`,
         },
         (payload) => {
-          console.log('New comment:', payload.new);
           setComments((prev) => [...prev, payload.new as Comment]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'runs',
+          filter: `id=eq.${runId}`,
+        },
+        (payload) => {
+          // Run情報を再取得
+          fetchRun();
         }
       )
       .subscribe();
@@ -184,10 +192,16 @@ export default function RunDetailScreen({ route, navigation }: RunDetailScreenPr
       <ScrollView style={styles.scrollView}>
         {/* Run詳細 */}
         <View style={styles.detailCard}>
-          <Text style={styles.title}>{run?.description || description}</Text>
-          <Text style={styles.datetime}>{new Date(run?.datetime || datetime).toLocaleString('ja-JP')}</Text>
-          {(run?.location_name || location_name) && <Text style={styles.location}>{run?.location_name || location_name}</Text>}
-          {(run?.note || note) && <Text style={styles.note}>{run?.note || note}</Text>}
+          {run ? (
+            <>
+              <Text style={styles.title}>{run.description}</Text>
+              <Text style={styles.datetime}>{new Date(run.datetime).toLocaleString('ja-JP')}</Text>
+              {run.location_name && <Text style={styles.location}>{run.location_name}</Text>}
+              {run.note && <Text style={styles.note}>{run.note}</Text>}
+            </>
+          ) : (
+            <Text style={styles.loading}>読み込み中...</Text>
+          )}
 
           {/* 編集・削除ボタン（自分の投稿のみ表示） */}
           {isOwner && (
@@ -408,5 +422,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  loading: {
+    textAlign: 'center',
+    color: '#999',
+    padding: 20,
+    fontStyle: 'italic',
   },
 });
