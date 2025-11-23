@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapScreen from './src/screens/MapScreen';
 import RunDetailScreen from './src/screens/RunDetailScreen';
 import { supabase } from './src/lib/supabase';
@@ -24,10 +25,15 @@ export default function App() {
     // アプリ起動時に匿名認証を実行
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        if (!session) {
-          // セッションがない場合は匿名ログイン
+        // Refresh Tokenエラーの場合はAsyncStorageをクリア
+        if (sessionError && sessionError.message.includes('Refresh Token')) {
+          await AsyncStorage.clear();
+        }
+
+        if (!session || sessionError) {
+          // セッションがない、またはエラーの場合は匿名ログイン
           const { error } = await supabase.auth.signInAnonymously();
           if (error) {
             console.error('Anonymous sign in error:', error);
